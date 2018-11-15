@@ -1,0 +1,27 @@
+{
+  "name": "find-commits",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "bin": {
+    "find-commits": "index.js"
+  },
+  "dependencies": {
+    "@octokit/rest": "^15.17.0",
+    "capitano": "^1.8.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/balena-io-modules/find-commits.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/balena-io-modules/find-commits/issues"
+  },
+  "homepage": "https://github.com/balena-io-modules/find-commits#readme"
+}

@@ -38,10 +38,10 @@ capitano.command({
       number
     })
     const messages = commits.data.map((commit) => {
-      return commit.commit.message
+      return commit.sha
     })
-    for (const msg of messages) {
-      console.log(msg)
+    for (const sha of shas) {
+      console.log(sha)
     }
   }
 })

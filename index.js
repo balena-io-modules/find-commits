@@ -37,9 +37,13 @@ capitano.command({
       repo,
       number
     })
-    const shas = commits.data.map((commit) => {
-      return commit.sha
-    })
+    const shas = commits.data.reduce((acc, commit) => {
+      if (commit.parents && commit.parents.length > 1) {
+        return acc
+      }
+      acc.push(commit.sha)
+      return acc
+    }, [])
     for (const sha of shas) {
       console.log(sha)
     }

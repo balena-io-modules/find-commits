@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "@octokit/rest": "^15.17.0",
-    "capitano": "^1.8.2"
+    "capitano": "^1.8.2",
+    "resin-commit-linter": "^1.1.4"
   },
   "devDependencies": {},
   "scripts": {

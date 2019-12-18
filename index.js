@@ -124,6 +124,7 @@ capitano.command({
     description: 'Head owner name',
   }],
   action: async (params, options) => {
+
     const owner = options['owner']
     const repo = options['repo']
     const number = options['number']
@@ -178,7 +179,6 @@ const getMergablePRs = async (prs, repo, owner) => {
     const approved = await isApproved(pr, owner, repo)
     const isGreen = await allChecksPassed(pr, owner, repo)
     const isNotFork = pr.data.head.repo.full_name === pr.data.base.repo.full_name
-
     if (rebaseable && approved && isGreen && isNotFork) {
       result.push(pr)
     }
@@ -223,13 +223,31 @@ const allChecksPassed = async (pr, owner, repo) => {
     branch: pr.data.base.ref
   })
 
-  const statusChecks = await octokit.repos.getCombinedStatusForRef({
+  const statuses = await octokit.repos.getCombinedStatusForRef({
     owner,
     repo,
     ref: pr.data.head.sha
   })
+
+  const checks = await paginate({
+    requestFn: octokit.checks.listForRef,
+    args: {
+      owner,
+      repo,
+      ref: pr.data.head.sha
+    }
+  })
+
+  const checksAndStatuses = _.concat(statuses.data.statuses, _.map(checks, (check) => {
+    // Github renames fields between checks and statuses
+    return {
+      context: check.name,
+      state: check.conclusion
+    }
+  }))
+
   return _.every(branchProtection.data.required_status_checks.contexts, (requiredCheck) => {
-    return _.find(statusChecks.data.statuses, (status) => {
+    return _.find(checksAndStatuses, (status) => {
       return requiredCheck === status.context && status.state === "success"
     })
   })

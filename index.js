@@ -161,7 +161,7 @@ const findPRcandidates = async (repo, owner) => {
   const mergeablePRs = await getMergablePRs(fullPRs, repo, owner)
   // We want to take a random PR out of the list of available ones
   // to prevent any bias on the selection
-  return _.sample(mergeablePRs)
+  return _.sample(mergeablePRs.candidates)
 
 }
 
@@ -179,20 +179,32 @@ const gatherFullPRsInfo = async (prs, repo, owner) => {
 }
 
 const getMergablePRs = async (prs, repo, owner) => {
-  const result = []
+  const result = {
+    best: 0,
+    candidates: []
+  }
+
+  // We want to pass this to isApproved to prevent re-fetching for every PR
+  const codeowners = await fetchCodeowners(owner, repo)
+
   for (const pr of prs) {
     const rebaseable = pr.data.rebaseable
-    const approved = await isApproved(pr, owner, repo)
-    const isGreen = await allChecksPassed(pr, owner, repo)
     const isNotFork = pr.data.head.repo.full_name === pr.data.base.repo.full_name
-    if (rebaseable && approved && isGreen && isNotFork) {
-      result.push(pr)
+    const approved = await isApproved(pr, codeowners, owner, repo)
+    if (rebaseable && approved && isNotFork) {
+      const scorePR = await scorePRChecks(pr, owner, repo)
+      if (scorePR === result.best) {
+        result.candidates.push(pr)
+      } else if (scorePR > result.best) {
+        result.best = scorePR
+        result.candidates = [pr]
+      }
     }
   }
   return result
 }
 
-const isApproved = async (pr, owner, repo) => {
+const isApproved = async (pr, codeowners, owner, repo) => {
   // fetch reviews
   const reviews = await paginate({
     requestFn: octokit.pulls.listReviews,
@@ -202,8 +214,7 @@ const isApproved = async (pr, owner, repo) => {
       pull_number: pr.data.number
     }
   })
-  // fetch codeowners
-  const codeowners = await fetchCodeowners(owner, repo)
+
   // fetch repo settings
   // check that # of approved reviews from codeowner satisfies checking
   // At least 1 of the requestedCodeowners that are requested for review has approved
@@ -222,7 +233,7 @@ const isApproved = async (pr, owner, repo) => {
   })
 }
 
-const allChecksPassed = async (pr, owner, repo) => {
+const scorePRChecks = async (pr, owner, repo) => {
   const branchProtection = await octokit.repos.getBranchProtection({
     owner,
     repo,
@@ -252,11 +263,27 @@ const allChecksPassed = async (pr, owner, repo) => {
     }
   }))
 
-  return _.every(branchProtection.data.required_status_checks.contexts, (requiredCheck) => {
-    return _.find(checksAndStatuses, (status) => {
-      return requiredCheck === status.context && status.state === "success"
+  return scoreChecks(branchProtection.data.required_status_checks.contexts, checksAndStatuses)
+}
+
+const scoreChecks = (required, found) => {
+  const sum = _(required)
+    .map((requiredCheck) => {
+      const hasCheck = _.find(found, (foundCheck) => {
+        return requiredCheck === foundCheck.context
+      })
+      if (hasCheck) {
+        if (hasCheck.state === 'success') {
+          return 1
+        } else if (hasCheck.state === 'pending') {
+          return 0
+        }
+      }
+      return -1
     })
-  })
+    .reduce((a, b) => a + b, 0)
+
+  return sum / required.length
 }
 
 const fetchCodeowners = async (owner, repo) => {

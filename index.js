@@ -46,12 +46,15 @@ capitano.command({
     const repo = options['repo']
     const number = options['number']
 
-    const commits = await octokit.pullRequests.getCommits({
-      owner,
-      repo,
-      number
+    const commits = await paginate({
+      requestFn: octokit.pullRequests.listCommits,
+      args: {
+        owner,
+        repo,
+        pull_number: number
+      }
     })
-    const shas = commits.data.reduce((acc, commit) => {
+    const shas = commits.reduce((acc, commit) => {
       if (commit.parents && commit.parents.length > 1) {
         return acc
       }
@@ -90,13 +93,16 @@ capitano.command({
     const repo = options['repo']
     const number = options['number']
 
-    const commits = await octokit.pullRequests.getCommits({
-      owner,
-      repo,
-      number
+    const commits = await await paginate({
+      requestFn: octokit.pullRequests.listCommits,
+      args: {
+        owner,
+        repo,
+        pull_number: number
+      }
     })
 
-    const parsed = commits.data.reduce((acc, commit) => {
+    const parsed = commits.reduce((acc, commit) => {
       if (commit.parents && commit.parents.length > 1) {
         return acc
       }

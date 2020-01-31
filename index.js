@@ -191,12 +191,13 @@ const getMergablePRs = async (prs, repo, owner) => {
     const rebaseable = pr.data.rebaseable
     const isNotFork = pr.data.head.repo.full_name === pr.data.base.repo.full_name
     const approved = await isApproved(pr, codeowners, owner, repo)
-    if (rebaseable && approved && isNotFork) {
-      const scorePR = await scorePRChecks(pr, owner, repo)
-      if (scorePR === result.best) {
+    if (rebaseable && isNotFork) {
+      const checkScore = await scorePRChecks(pr, owner, repo)
+      const prScore = approved ? checkScore * 2 : checkScore
+      if (prScore === result.best) {
         result.candidates.push(pr)
-      } else if (scorePR > result.best) {
-        result.best = scorePR
+      } else if (prScore > result.best) {
+        result.best = prScore
         result.candidates = [pr]
       }
     }
@@ -282,8 +283,7 @@ const scoreChecks = (required, found) => {
       return -1
     })
     .reduce((a, b) => a + b, 0)
-
-  return sum / required.length
+  return sum
 }
 
 const fetchCodeowners = async (owner, repo) => {

@@ -4,7 +4,8 @@
 
 const capitano = require('capitano')
 const _ = require('lodash')
-const octokit = require('@octokit/rest')({
+const { Octokit } = require('@octokit/rest')
+const octokit = new Octokit({
   debug: !!process.env.DEBUG,
   auth: process.env.GITHUB_TOKEN
 })
@@ -18,6 +19,17 @@ const paginate = (options) => {
 
   const requestOptions = requestFn.endpoint.merge(args)
   return octokit.paginate(requestOptions)
+}
+
+const fetchCommits = (owner, repo, number) => {
+  return paginate({
+    requestFn: octokit.pulls.listCommits,
+    args: {
+      owner,
+      repo,
+      pull_number: number
+    }
+  })
 }
 
 capitano.command({
@@ -46,14 +58,7 @@ capitano.command({
     const repo = options['repo']
     const number = options['number']
 
-    const commits = await paginate({
-      requestFn: octokit.pullRequests.listCommits,
-      args: {
-        owner,
-        repo,
-        pull_number: number
-      }
-    })
+    const commits = await fetchCommits(owner, repo, number)
     const shas = commits.reduce((acc, commit) => {
       if (commit.parents && commit.parents.length > 1) {
         return acc
@@ -93,14 +98,7 @@ capitano.command({
     const repo = options['repo']
     const number = options['number']
 
-    const commits = await await paginate({
-      requestFn: octokit.pullRequests.listCommits,
-      args: {
-        owner,
-        repo,
-        pull_number: number
-      }
-    })
+    const commits = await fetchCommits(owner, repo, number)
 
     const parsed = commits.reduce((acc, commit) => {
       if (commit.parents && commit.parents.length > 1) {

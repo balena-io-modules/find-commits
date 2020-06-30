@@ -126,16 +126,23 @@ capitano.command({
     required: true,
     alias: ['o'],
     description: 'Head owner name',
+  }, {
+    signature: 'samples',
+    parameter: 'samples',
+    required: false,
+    alias: ['s'],
+    description: 'Number of candidate PRs to pick',
   }],
   action: async (params, options) => {
 
     const owner = options['owner']
     const repo = options['repo']
     const number = options['number']
+    const samples = options['samples'] || 1
 
-    const candidate = await findPRcandidates(repo, owner)
+    const candidates = await findPRcandidates(repo, owner, samples)
 
-    console.log(JSON.stringify(candidate, null, 2))
+    console.log(JSON.stringify(candidates, null, 2))
   }
 })
 
@@ -145,7 +152,7 @@ capitano.run(process.argv, err => {
   }
 })
 
-const findPRcandidates = async (repo, owner) => {
+const findPRcandidates = async (repo, owner, samples) => {
   let prs = await paginate({
     requestFn: octokit.pulls.list,
     args: {
@@ -157,9 +164,13 @@ const findPRcandidates = async (repo, owner) => {
   let fullPRs = await gatherFullPRsInfo(prs, repo, owner)
 
   const mergeablePRs = await getMergablePRs(fullPRs, repo, owner)
-  // We want to take a random PR out of the list of available ones
+  // We want to take random PRs out of the list of available ones
   // to prevent any bias on the selection
-  return _.sample(mergeablePRs.candidates)
+  const candidates = _.sampleSize(mergeablePRs.candidates, samples)
+  if (samples === 1) {
+    return candidates[0]
+  }
+  else return candidates
 
 }
 

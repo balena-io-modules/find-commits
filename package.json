@@ -1,6 +1,6 @@
 {
   "name": "find-commits",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "",
   "main": "index.js",
   "bin": {
@@ -24,5 +24,8 @@
   "bugs": {
     "url": "https://github.com/balena-io-modules/find-commits/issues"
   },
-  "homepage": "https://github.com/balena-io-modules/find-commits#readme"
+  "homepage": "https://github.com/balena-io-modules/find-commits#readme",
+  "versionist": {
+    "publishedAt": "2022-02-09T14:11:22.253Z"
+  }
 }

@@ -9,7 +9,44 @@ const octokit = new Octokit({
   debug: !!process.env.DEBUG,
   auth: process.env.GITHUB_TOKEN
 })
-const commitParser = require('resin-commit-linter/lib/parser').parse
+
+const conventionalCommitsParser = require('conventional-commits-parser');
+
+const commitParser = (commit) => {
+  const opts = {
+    noteKeywords: [
+      'Backport-to',
+      'Change-type',
+      'Changelog-entry',
+      'Connects-to',
+      'Signed-off-by',
+    ],
+    notesPattern: (noteKeywords) => new RegExp('^(' + noteKeywords + '):\\s(.*)$', 'i'),
+  };
+  return conventionalCommitsParser.sync(commit, opts);
+}
+
+const transformToLegacy = (commit) => {
+  return {
+    title: commit.header,
+    body: commit.body,
+    // NOTE: as a consequence of using reduce here multiple footer occurences
+    // will be squashed, keeping only the value closest to the end of the commit
+    // message
+    //
+    // The contents of commit.notes returned from conventional-commits-parser
+    // looks like this:
+    // { title: "Change-type", text: "major" }
+    footers: _.chain(commit.notes)
+      .reduce((o, {title, text}) => {
+        o.push([title, text]);
+        return o;
+      }, [])
+        .fromPairs()
+        .value(),
+  }
+}
+
 
 const paginate = (options) => {
   const {
@@ -104,7 +141,7 @@ capitano.command({
       if (commit.parents && commit.parents.length > 1) {
         return acc
       }
-      acc.push(commitParser(commit.commit.message))
+      acc.push(transformToLegacy(commitParser(commit.commit.message)))
       return acc
     }, [])
 

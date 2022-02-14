@@ -9,7 +9,7 @@
   "dependencies": {
     "@octokit/rest": "^17.0.0",
     "capitano": "^1.8.2",
-    "resin-commit-linter": "^1.1.4"
+    "conventional-commits-parser": "^3.2.4"
   },
   "devDependencies": {},
   "scripts": {

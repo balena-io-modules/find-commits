@@ -39,6 +39,13 @@ const transformToLegacy = (commit) => {
     // { title: "Change-type", text: "major" }
     footers: _.chain(commit.notes)
       .reduce((o, {title, text}) => {
+        // this handles a shortcoming of the way conventional-commits-parser
+        // handles notes by parsing past the end of the line when it appears
+        // in the middle of the commit message body:
+        // https://github.com/conventional-changelog/conventional-changelog/blob/master/packages/conventional-commits-parser/lib/parser.js#L255
+        if (text.includes("\n")) {
+          throw new Error(`invalid footer: "${title}: ${text.replace(/\n/, '\\n')}"`);
+        }
         o.push([title, text]);
         return o;
       }, [])
